@@ -17,4 +17,4 @@ demo:
 	PYTHONPATH=src $(VENV_PYTHON) scripts/run_demo.py
 
 clean:
-	rm -rf .pytest_cache reports/*.md data/synthetic/*.csv $(VENV)
+	rm -rf .pytest_cache reports/*.md reports/figures data/synthetic/*.csv $(VENV)

@@ -1,9 +1,8 @@
 # Case Studies
 
-This repo generates three reproducible markdown reports in `reports/`:
-
-1. Signup conversion lift under fixed horizon + sequential checks.
-2. Checkout value experiment with CUPED variance reduction.
-3. Sequential peeking example with stricter alpha threshold.
-
-Run all of them with `make demo`.
+- [Case 1: Signup Flow Experiment](case_1_signup.md)
+- [Case 2: Checkout Value Experiment](case_2_checkout_value.md)
+- [Case 3: Sequential Peeking Experiment](case_3_sequential_peeking.md)
+- [Case 4: Search CTR Ratio-Metric Experiment](case_4_search_ctr.md)
+- [Decision Memo](decision_memo.md)
+- [Methods Appendix](methods_appendix.md)

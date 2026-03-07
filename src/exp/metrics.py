@@ -17,12 +17,34 @@ class MetricResult:
     p_value: float
     ci_low: float
     ci_high: float
+    standard_error: float
+    test_statistic: float
 
 
 def _relative_lift(control: float, treatment: float) -> float:
     if control == 0:
         return float("inf") if treatment > 0 else 0.0
     return (treatment - control) / control
+
+
+def bootstrap_difference_ci(
+    control: np.ndarray,
+    treatment: np.ndarray,
+    confidence_level: float = 0.95,
+    n_bootstrap: int = 2000,
+    random_seed: int = 42,
+) -> tuple[float, float]:
+    control = np.asarray(control, dtype=float)
+    treatment = np.asarray(treatment, dtype=float)
+    rng = np.random.default_rng(random_seed)
+
+    control_draws = rng.choice(control, size=(n_bootstrap, control.size), replace=True)
+    treatment_draws = rng.choice(treatment, size=(n_bootstrap, treatment.size), replace=True)
+    diffs = treatment_draws.mean(axis=1) - control_draws.mean(axis=1)
+
+    lower_q = (1.0 - confidence_level) / 2.0
+    upper_q = 1.0 - lower_q
+    return float(np.quantile(diffs, lower_q)), float(np.quantile(diffs, upper_q))
 
 
 def binary_metric_summary(control: np.ndarray, treatment: np.ndarray, alpha: float = 0.05) -> MetricResult:
@@ -38,8 +60,8 @@ def binary_metric_summary(control: np.ndarray, treatment: np.ndarray, alpha: flo
     pooled = (control.sum() + treatment.sum()) / (n_control + n_treatment)
     standard_error = np.sqrt(max(pooled * (1.0 - pooled), 1e-12) * (1.0 / n_control + 1.0 / n_treatment))
 
-    z = lift / standard_error
-    p_value = 2.0 * (1.0 - stats.norm.cdf(abs(z)))
+    z_stat = lift / max(standard_error, 1e-12)
+    p_value = 2.0 * (1.0 - stats.norm.cdf(abs(z_stat)))
 
     z_alpha = stats.norm.ppf(1.0 - alpha / 2.0)
     ci_low = lift - z_alpha * standard_error
@@ -53,6 +75,8 @@ def binary_metric_summary(control: np.ndarray, treatment: np.ndarray, alpha: flo
         p_value=float(p_value),
         ci_low=float(ci_low),
         ci_high=float(ci_high),
+        standard_error=float(standard_error),
+        test_statistic=float(z_stat),
     )
 
 
@@ -68,13 +92,11 @@ def continuous_metric_summary(control: np.ndarray, treatment: np.ndarray, alpha:
 
     var_control = np.var(control, ddof=1)
     var_treatment = np.var(treatment, ddof=1)
-    se = np.sqrt(var_control / control.size + var_treatment / treatment.size)
+    standard_error = np.sqrt(var_control / control.size + var_treatment / treatment.size)
     z_alpha = stats.norm.ppf(1.0 - alpha / 2.0)
 
-    ci_low = lift - z_alpha * se
-    ci_high = lift + z_alpha * se
-
-    _ = t_stat  # variable retained for debugging without noisy lints
+    ci_low = lift - z_alpha * standard_error
+    ci_high = lift + z_alpha * standard_error
 
     return MetricResult(
         control_mean=float(mu_control),
@@ -84,6 +106,8 @@ def continuous_metric_summary(control: np.ndarray, treatment: np.ndarray, alpha:
         p_value=float(p_value),
         ci_low=float(ci_low),
         ci_high=float(ci_high),
+        standard_error=float(standard_error),
+        test_statistic=float(t_stat),
     )
 
 
@@ -103,17 +127,19 @@ def ratio_metric_summary(
     treatment_ratio = treatment_numerator.sum() / max(treatment_denominator.sum(), 1e-12)
     lift = treatment_ratio - control_ratio
 
-    # Delta-method approximation on user-level ratios.
     control_user_ratio = control_numerator / np.maximum(control_denominator, 1e-12)
     treatment_user_ratio = treatment_numerator / np.maximum(treatment_denominator, 1e-12)
 
-    se = np.sqrt(np.var(control_user_ratio, ddof=1) / control_user_ratio.size + np.var(treatment_user_ratio, ddof=1) / treatment_user_ratio.size)
-    z = lift / max(se, 1e-12)
-    p_value = 2.0 * (1.0 - stats.norm.cdf(abs(z)))
+    standard_error = np.sqrt(
+        np.var(control_user_ratio, ddof=1) / control_user_ratio.size
+        + np.var(treatment_user_ratio, ddof=1) / treatment_user_ratio.size
+    )
+    z_stat = lift / max(standard_error, 1e-12)
+    p_value = 2.0 * (1.0 - stats.norm.cdf(abs(z_stat)))
 
     z_alpha = stats.norm.ppf(1.0 - alpha / 2.0)
-    ci_low = lift - z_alpha * se
-    ci_high = lift + z_alpha * se
+    ci_low = lift - z_alpha * standard_error
+    ci_high = lift + z_alpha * standard_error
 
     return MetricResult(
         control_mean=float(control_ratio),
@@ -123,4 +149,6 @@ def ratio_metric_summary(
         p_value=float(p_value),
         ci_low=float(ci_low),
         ci_high=float(ci_high),
+        standard_error=float(standard_error),
+        test_statistic=float(z_stat),
     )

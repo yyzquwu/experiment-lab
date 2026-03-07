@@ -48,3 +48,15 @@ def mde_binary(
     z_beta = norm.ppf(power)
     scale = math.sqrt(2.0 * baseline_rate * (1.0 - baseline_rate) / max(n_per_variant, 1))
     return (z_alpha + z_beta) * scale
+
+
+def mde_continuous(
+    sigma: float,
+    n_per_variant: int,
+    alpha: float = 0.05,
+    power: float = 0.8,
+) -> float:
+    z_alpha = norm.ppf(1.0 - alpha / 2.0)
+    z_beta = norm.ppf(power)
+    scale = math.sqrt(2.0 * sigma**2 / max(n_per_variant, 1))
+    return (z_alpha + z_beta) * scale

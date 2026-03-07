@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
+import pandas as pd
 from scipy.stats import chi2
 
 
@@ -51,6 +52,21 @@ def missingness_summary(values: np.ndarray) -> dict[str, float]:
     }
 
 
+def missingness_by_variant(frame: pd.DataFrame, value_column: str, variant_column: str = "variant") -> pd.DataFrame:
+    rows = []
+    for variant, subset in frame.groupby(variant_column):
+        summary = missingness_summary(subset[value_column].to_numpy())
+        rows.append(
+            {
+                "variant": variant,
+                "missing_count": summary["missing_count"],
+                "total_count": summary["total_count"],
+                "missing_rate": summary["missing_rate"],
+            }
+        )
+    return pd.DataFrame(rows).sort_values("variant").reset_index(drop=True)
+
+
 def covariate_balance(control_values: np.ndarray, treatment_values: np.ndarray) -> BalanceResult:
     control_values = np.asarray(control_values, dtype=float)
     treatment_values = np.asarray(treatment_values, dtype=float)
@@ -66,3 +82,28 @@ def covariate_balance(control_values: np.ndarray, treatment_values: np.ndarray) 
         mean_treatment=float(mean_treatment),
         standardized_diff=float(standardized_diff),
     )
+
+
+def covariate_balance_table(frame: pd.DataFrame, columns: list[str], variant_column: str = "variant") -> pd.DataFrame:
+    rows = []
+    control = frame[frame[variant_column] == "control"]
+    treatment = frame[frame[variant_column] == "treatment"]
+    for column in columns:
+        if column not in frame.columns or not pd.api.types.is_numeric_dtype(frame[column]):
+            continue
+        balance = covariate_balance(control[column].to_numpy(), treatment[column].to_numpy())
+        rows.append(
+            {
+                "column": column,
+                "mean_control": balance.mean_control,
+                "mean_treatment": balance.mean_treatment,
+                "standardized_diff": balance.standardized_diff,
+            }
+        )
+    return pd.DataFrame(rows).sort_values("column").reset_index(drop=True)
+
+
+def segment_assignment_table(frame: pd.DataFrame, segment_column: str, variant_column: str = "variant") -> pd.DataFrame:
+    counts = pd.crosstab(frame[segment_column], frame[variant_column])
+    counts = counts.reset_index().rename(columns={segment_column: "segment"})
+    return counts

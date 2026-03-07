@@ -1,31 +1,55 @@
 # experiment-lab
 
-`experiment-lab` is a recruiter-friendly experimentation repository for product analytics roles.
-It includes reusable A/B testing utilities, sanity checks, sequential-safe decisions, and reproducible case-study reports.
+This repo started as a compact A/B testing toolkit and then turned into something I found more useful: a place to pressure-test the parts of experimentation work that are easy to wave away when a result looks clean.
 
-## What This Repo Shows
+What I wanted here was not just a reusable stats package. I wanted a workflow that keeps asking harder questions:
+- does the result survive sanity checks,
+- what changes once sequential peeking is made explicit,
+- how much does variance reduction actually help,
+- when does a ratio metric behave differently from a simpler mean,
+- and what looks fine on average but starts to feel worse once guardrails or segments are broken out.
 
-- Metric definitions and hypothesis tests for binary and continuous outcomes.
-- Sample size / MDE calculators.
-- CUPED-style variance reduction for continuous metrics.
-- Sanity checks: SRM, missingness, covariate balance.
-- Sequential-safe options:
-  - Frequentist guardrail via Bonferroni-adjusted alpha.
-  - Bayesian posterior probability that treatment beats control.
-- Markdown report generator for CSV/Parquet experiment files.
+## What is in here
 
-## Data Contract
+- Binary, continuous, and ratio-metric experiment summaries.
+- Sample-size and MDE calculators for binary and continuous outcomes.
+- CUPED adjustment for continuous metrics with pre-period signal.
+- Sanity checks for SRM, missingness, assignment balance, and segment splits.
+- Sequential decision helpers with Bonferroni and O'Brien-Fleming thresholds.
+- Bayesian posterior probability and expected-loss framing for binary outcomes.
+- Four end-to-end case studies with markdown reports, figures, and a summary memo.
 
-Input file requires at least:
+## Data setup
 
+This repo is synthetic by design. That is not because the topic only works on toy data; it is because I wanted the cases to be reproducible and tailored to specific experimentation failure modes:
+- a primary-metric win with a support-cost guardrail,
+- a continuous-value case where CUPED actually matters,
+- a sequential-peeking case where impatience changes the story,
+- and a ratio-metric case where the average is not the whole argument.
+
+The data is generated locally:
+
+```bash
+make demo
+```
+
+That writes CSVs to `data/synthetic/` and reports to `reports/`.
+
+## Input contract
+
+Required columns:
 - `user_id`
-- `variant` (`control` or `treatment`)
+- `variant`
 - `timestamp`
-- `outcome`
 
-Optional:
+Primary metric inputs:
+- binary / continuous case: `outcome`
+- ratio case: `numerator` and `denominator` style columns such as `clicks` and `impressions`
 
-- `pre_metric` for CUPED and balance checks.
+Optional columns used by the richer workflow:
+- `pre_metric`
+- `segment`
+- guardrail metrics such as `support_tickets`, `refund_flag`, `latency_alert`, `bounce_rate`
 
 ## Quickstart
 
@@ -35,35 +59,29 @@ make test
 make demo
 ```
 
-Generated outputs:
-
+Generated artifacts:
 - `reports/case_1_signup.md`
 - `reports/case_2_checkout_value.md`
 - `reports/case_3_sequential_peeking.md`
+- `reports/case_4_search_ctr.md`
+- `reports/decision_memo.md`
+- `reports/methods_appendix.md`
+- `reports/figures/`
+- `notebooks/experiment_walkthrough.ipynb`
 
-## CLI Usage
+## Repo structure
 
-```bash
-PYTHONPATH=src python -m exp.report \
-  --input data/synthetic/signup_experiment.csv \
-  --output reports/custom_report.md \
-  --metric-column outcome \
-  --metric-type binary
-```
+- `src/exp/metrics.py`: fixed-horizon estimators and bootstrap uncertainty helpers.
+- `src/exp/power.py`: sample-size and MDE calculations.
+- `src/exp/sequential.py`: sequential thresholds and Bayesian decision helpers.
+- `src/exp/sanity.py`: SRM, missingness, balance, and segment-assignment checks.
+- `src/exp/report.py`: reusable analysis layer plus markdown report generation.
+- `scripts/generate_synthetic_data.py`: deterministic case-study datasets.
+- `scripts/run_demo.py`: end-to-end report and figure generation.
 
-## Project Structure
+## What I cared about while building this
 
-- `src/exp/`: experimentation package.
-- `scripts/generate_synthetic_data.py`: deterministic synthetic datasets.
-- `scripts/run_demo.py`: builds end-to-end markdown reports.
-- `tests/`: known-answer unit tests.
-
-## Case-Study Narrative Template
-
-Use each generated report to communicate:
-
-1. Business question and success metric.
-2. Experiment design and guardrails.
-3. Sanity checks and diagnostics.
-4. Effect estimate + uncertainty.
-5. Decision and next iteration.
+1. A report should get more interesting once the uncertainty and failure modes are added back in, not less.
+2. Guardrails should affect the decision language instead of being left as a footnote.
+3. Sequential peeking deserves to be treated as a first-class product decision problem.
+4. The repo should feel personally authored rather than like a generic experimentation template.
