@@ -161,8 +161,6 @@ def main() -> None:
     output_dir = Path("data/synthetic")
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    build_signup_experiment(output_dir)
-    build_checkout_value_experiment(output_dir)
     build_sequential_peeking_experiment(output_dir)
     build_search_ctr_experiment(output_dir)
 

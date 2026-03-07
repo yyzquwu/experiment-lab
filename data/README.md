@@ -1,8 +1,12 @@
 # Data
 
-- `data/synthetic/`: generated datasets used by `make demo`.
-- `data/raw/`: place downloaded public datasets here (ignored by git).
+- `data/raw/`: downloaded public datasets and processed benchmark files (ignored by git).
+- `data/synthetic/`: generated stress-test datasets used by `make demo`.
 
-Suggested public datasets for extra case studies:
-- [Kaggle A/B Testing datasets](https://www.kaggle.com/search?q=ab+testing+dataset)
-- [Google Merchandise Store (BigQuery public sample)](https://support.google.com/analytics/answer/7586738)
+Current public benchmark:
+- Hillstrom email-marketing experiment, downloaded and preprocessed by `scripts/download_data.py`.
+
+Current synthetic cases:
+- sequential-peeking stress case
+- ratio-metric search CTR case
+- additional sandbox datasets used for experimentation diagnostics

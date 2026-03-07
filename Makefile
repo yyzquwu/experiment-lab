@@ -13,6 +13,7 @@ test:
 	PYTHONPATH=src $(VENV_PYTHON) -m pytest -q --capture=no
 
 demo:
+	PYTHONPATH=src $(VENV_PYTHON) scripts/download_data.py
 	PYTHONPATH=src $(VENV_PYTHON) scripts/generate_synthetic_data.py
 	PYTHONPATH=src $(VENV_PYTHON) scripts/run_demo.py
 

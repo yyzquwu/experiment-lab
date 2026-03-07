@@ -1,5 +1,6 @@
 """Experiment analysis toolkit."""
 
+from .data import prepare_hillstrom_dataset, preprocess_hillstrom
 from .metrics import binary_metric_summary, bootstrap_difference_ci, continuous_metric_summary, ratio_metric_summary
 from .power import binary_sample_size_per_variant, continuous_sample_size_per_variant, mde_binary, mde_continuous
 from .cuped import apply_cuped
@@ -13,6 +14,8 @@ from .sequential import (
 )
 
 __all__ = [
+    "prepare_hillstrom_dataset",
+    "preprocess_hillstrom",
     "apply_cuped",
     "binary_metric_summary",
     "bootstrap_difference_ci",

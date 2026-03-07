@@ -19,32 +19,36 @@ FIGURES_DIR = REPORTS_DIR / "figures"
 
 CASE_SPECS = [
     {
-        "name": "signup",
-        "input_path": "data/synthetic/signup_experiment.csv",
-        "output_path": "reports/case_1_signup.md",
-        "metric_column": "outcome",
+        "name": "hillstrom_conversion",
+        "input_path": "data/raw/hillstrom_experiment.csv",
+        "output_path": "reports/case_1_hillstrom_conversion.md",
+        "metric_column": "outcome_conversion",
         "metric_type": "binary",
         "covariate_column": "pre_metric",
-        "guardrail_columns": ["support_tickets"],
-        "guardrail_directions": {"support_tickets": "lower_is_better"},
+        "guardrail_columns": [],
         "segment_column": "segment",
-        "case_title": "Case 1: Signup Flow Experiment",
-        "question": "Does the new signup treatment increase completed signup rate without creating enough extra support burden to cancel the gain?",
-        "personal_context": "This is the kind of experiment I like because the headline metric is easy to celebrate too early. The useful work starts once the support burden and segment differences are allowed back into the conversation.",
+        "expected_treatment_ratio": 2.0 / 3.0,
+        "sequential_looks": 1,
+        "case_title": "Case 1: Hillstrom Conversion Experiment",
+        "question": "Does sending email at all increase conversion relative to the holdout group, and where does that effect look stronger or weaker across customer-history segments?",
+        "personal_context": "I wanted at least one case in this repo to run on a real randomized benchmark instead of a fully constructed sandbox. Hillstrom is not a modern product experiment, but it is public, reproducible, and much better for showing what the workflow looks like on data I did not invent.",
+        "data_source": "real public benchmark",
     },
     {
-        "name": "checkout_value",
-        "input_path": "data/synthetic/checkout_value_experiment.csv",
-        "output_path": "reports/case_2_checkout_value.md",
-        "metric_column": "outcome",
+        "name": "hillstrom_spend",
+        "input_path": "data/raw/hillstrom_experiment.csv",
+        "output_path": "reports/case_2_hillstrom_spend.md",
+        "metric_column": "outcome_spend",
         "metric_type": "continuous",
         "covariate_column": "pre_metric",
-        "guardrail_columns": ["refund_flag"],
-        "guardrail_directions": {"refund_flag": "lower_is_better"},
+        "guardrail_columns": [],
         "segment_column": "segment",
-        "case_title": "Case 2: Checkout Value Experiment",
-        "question": "Does the treatment increase checkout value enough to matter after variance reduction, and is any gain offset by higher refunds?",
-        "personal_context": "I kept this case because it forces a more honest read of continuous-metric experiments. The lift looks strong, but the more useful question is whether the variance reduction and guardrail story still hold once they are written down explicitly.",
+        "expected_treatment_ratio": 2.0 / 3.0,
+        "sequential_looks": 1,
+        "case_title": "Case 2: Hillstrom Spend Experiment",
+        "question": "Does the same email treatment move spend per customer once the outcome is noisier and more skewed than the simple conversion indicator?",
+        "personal_context": "I kept a continuous case here because binary wins are not the whole job. Spend is noisier and easier to overread, so this is where CUPED and uncertainty intervals feel more necessary than decorative.",
+        "data_source": "real public benchmark",
     },
     {
         "name": "sequential",
@@ -60,6 +64,7 @@ CASE_SPECS = [
         "case_title": "Case 3: Sequential Peeking Experiment",
         "question": "If the team keeps checking the result early, does the treatment still look good once the sequential decision rule is made explicit?",
         "personal_context": "This case is here because the most misleading experimentation habit is not a fancy statistical bug. It is ordinary impatience. I wanted one example where the temptation to stop early is visible in the report itself.",
+        "data_source": "synthetic stress case",
     },
     {
         "name": "search_ratio",
@@ -75,6 +80,7 @@ CASE_SPECS = [
         "case_title": "Case 4: Search CTR Ratio-Metric Experiment",
         "question": "Does the treatment improve clicks per impression without pushing low-intent users into worse post-click behavior?",
         "personal_context": "I wanted one ratio-metric case because so many real product metrics are not simple Bernoulli or pure revenue numbers. The harder part is usually deciding whether the ratio gain is worth the mess it creates elsewhere.",
+        "data_source": "synthetic stress case",
     },
 ]
 
@@ -152,6 +158,7 @@ def main() -> None:
             metric_column=spec.get("metric_column", "outcome"),
             metric_type=spec["metric_type"],
             covariate_column=spec.get("covariate_column", "pre_metric"),
+            expected_treatment_ratio=spec.get("expected_treatment_ratio", 0.5),
             sequential_looks=spec.get("sequential_looks", 5),
             numerator_column=spec.get("numerator_column"),
             denominator_column=spec.get("denominator_column"),
@@ -167,6 +174,7 @@ def main() -> None:
         summary_rows.append(
             {
                 "case": spec["case_title"],
+                "data_source": spec.get("data_source", "synthetic"),
                 "metric_type": spec["metric_type"],
                 "absolute_lift": result.absolute_lift,
                 "relative_lift": result.relative_lift,
@@ -209,23 +217,25 @@ def main() -> None:
         "This repo ended up being less about finding one neat experiment win and more about showing the parts of experimentation work that usually get flattened away: guardrails, peeking pressure, variance reduction, ratio metrics, and the uncomfortable fact that the average effect can look fine while a subgroup story looks worse.",
         "",
         "## Case summary",
-        "| Case | Metric Type | Absolute Lift | Relative Lift | p-value | Harmful Guardrails | Decision |",
-        "|---|---|---:|---:|---:|---:|---|",
+        "| Case | Data Source | Metric Type | Absolute Lift | Relative Lift | p-value | Harmful Guardrails | Decision |",
+        "|---|---|---|---:|---:|---:|---:|---|",
     ]
     for row in summary.itertuples(index=False):
         memo_lines.append(
-            f"| {row.case} | {row.metric_type} | {row.absolute_lift:.6f} | {row.relative_lift:.2%} | {row.p_value:.6f} | {row.harmful_guardrails} | {row.decision} |"
+            f"| {row.case} | {row.data_source} | {row.metric_type} | {row.absolute_lift:.6f} | {row.relative_lift:.2%} | {row.p_value:.6f} | {row.harmful_guardrails} | {row.decision} |"
         )
     memo_lines.extend(
         [
             "",
             "## What felt convincing",
-            "- The repo now covers binary, continuous, and ratio metrics instead of pretending one statistical pattern is enough.",
+            "- The repo now mixes a real public benchmark with synthetic stress cases instead of making every claim on invented data.",
+            "- It covers binary, continuous, and ratio metrics instead of pretending one statistical pattern is enough.",
             "- Sequential peeking is treated as a real decision problem rather than an afterthought.",
             "- Guardrails are integrated into the decision language instead of being left as a footnote.",
             "",
             "## What still feels fragile",
-            "- These cases are still synthetic, even though they are built to feel more like the tradeoffs I would expect in practice.",
+            "- Hillstrom is real but still narrower than a modern product experimentation stack.",
+            "- The synthetic cases are useful because they surface failure modes cleanly, but they are still synthetic.",
             "- Segment-level differences are useful for follow-up design, but they are not causal personalization claims by themselves.",
         ]
     )
@@ -243,8 +253,8 @@ def main() -> None:
         "- Bayesian posterior probability and expected loss for binary outcomes.",
         "",
         "## Why the case studies differ",
-        "- Signup case: primary-metric win with a support-burden guardrail.",
-        "- Checkout-value case: CUPED-friendly continuous metric with refund risk.",
+        "- Hillstrom conversion case: public randomized benchmark on a binary outcome.",
+        "- Hillstrom spend case: public randomized benchmark on a noisier continuous outcome.",
         "- Sequential case: novelty effect and peeking pressure.",
         "- Ratio-metric case: clicks per impression with bounce-rate guardrail.",
     ]
@@ -253,8 +263,8 @@ def main() -> None:
     case_study_lines = [
         "# Case Studies",
         "",
-        "- [Case 1: Signup Flow Experiment](case_1_signup.md)",
-        "- [Case 2: Checkout Value Experiment](case_2_checkout_value.md)",
+        "- [Case 1: Hillstrom Conversion Experiment](case_1_hillstrom_conversion.md)",
+        "- [Case 2: Hillstrom Spend Experiment](case_2_hillstrom_spend.md)",
         "- [Case 3: Sequential Peeking Experiment](case_3_sequential_peeking.md)",
         "- [Case 4: Search CTR Ratio-Metric Experiment](case_4_search_ctr.md)",
         "- [Decision Memo](decision_memo.md)",

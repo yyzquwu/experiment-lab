@@ -9,7 +9,7 @@
 - Bayesian posterior probability and expected loss for binary outcomes.
 
 ## Why the case studies differ
-- Signup case: primary-metric win with a support-burden guardrail.
-- Checkout-value case: CUPED-friendly continuous metric with refund risk.
+- Hillstrom conversion case: public randomized benchmark on a binary outcome.
+- Hillstrom spend case: public randomized benchmark on a noisier continuous outcome.
 - Sequential case: novelty effect and peeking pressure.
 - Ratio-metric case: clicks per impression with bounce-rate guardrail.
