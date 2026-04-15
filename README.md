@@ -68,3 +68,4 @@ Generated artifacts include:
 - `scripts/download_data.py`: public benchmark download + preprocessing.
 - `scripts/generate_synthetic_data.py`: deterministic case-study datasets.
 - `scripts/run_demo.py`: end-to-end report and figure generation.
+
